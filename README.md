@@ -1,840 +1,1688 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>실시간 OX 퀴즈 - 교사용</title>
+  <title>실시간 4글자 퀴즈</title>
+
+  <!-- Firebase compat SDK: index.html 하나로 쓰기 쉽게 compat 버전 사용 -->
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
 
   <style>
+    :root {
+      --bg1: #fff7ed;
+      --bg2: #e0f2fe;
+      --card: rgba(255, 255, 255, 0.92);
+      --ink: #1f2937;
+      --muted: #6b7280;
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --green: #16a34a;
+      --red: #dc2626;
+      --amber: #f59e0b;
+      --line: #e5e7eb;
+      --shadow: 0 18px 45px rgba(15, 23, 42, 0.13);
+      --radius: 24px;
+    }
+
     * {
       box-sizing: border-box;
     }
 
+    html {
+      min-height: 100%;
+    }
+
     body {
       margin: 0;
-      font-family: Arial, "Pretendard", sans-serif;
-      background: #f3f4f6;
-      color: #111827;
       min-height: 100vh;
+      min-height: 100dvh;
+      overflow-x: hidden;
+      font-family: Pretendard, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, #fde68a 0, transparent 32%),
+        radial-gradient(circle at top right, #bae6fd 0, transparent 34%),
+        linear-gradient(135deg, var(--bg1), var(--bg2));
     }
 
-    .page {
-      max-width: 1280px;
+    button,
+    input {
+      font-family: inherit;
+    }
+
+    .app {
+      width: min(1440px, 100%);
+      min-height: 100vh;
+      min-height: 100dvh;
       margin: 0 auto;
-      padding: 20px;
+      padding: clamp(10px, 2vw, 28px);
     }
 
-    .top-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-      margin-bottom: 16px;
-      padding: 16px 20px;
-      background: #111827;
-      color: white;
-      border-radius: 12px;
+    .hero {
+      text-align: center;
+      margin-bottom: clamp(10px, 2vw, 24px);
     }
 
-    .top-bar h1 {
+    .hero h1 {
+      margin: 0 0 6px;
+      font-size: clamp(26px, 4.5vw, 58px);
+      letter-spacing: -0.04em;
+    }
+
+    .hero p {
       margin: 0;
-      font-size: 28px;
-    }
-
-    .top-status {
-      font-size: 18px;
-      font-weight: 700;
-      padding: 10px 14px;
-      background: rgba(255, 255, 255, 0.14);
-      border-radius: 10px;
-      white-space: nowrap;
-    }
-
-    .main-grid {
-      display: grid;
-      grid-template-columns: 1fr 320px;
-      gap: 16px;
-      align-items: start;
-    }
-
-    .panel {
-      background: white;
-      border: 1px solid #d1d5db;
-      border-radius: 12px;
-      padding: 18px;
-      margin-bottom: 16px;
-    }
-
-    .section-title {
-      margin: 0 0 12px;
-      font-size: 22px;
-      font-weight: 800;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 8px;
-      font-size: 16px;
-      font-weight: 700;
-    }
-
-    select,
-    textarea {
-      width: 100%;
-      border: 1px solid #9ca3af;
-      border-radius: 10px;
-      padding: 12px;
-      font-size: 18px;
-      font-family: Arial, "Pretendard", sans-serif;
-      background: white;
-    }
-
-    textarea {
-      min-height: 140px;
-      resize: vertical;
+      color: var(--muted);
+      font-size: clamp(16px, 2vw, 21px);
       line-height: 1.5;
-      white-space: pre;
     }
 
-    .current-question {
-      min-height: 170px;
-      margin: 14px 0;
-      padding: 24px;
-      background: #f9fafb;
-      border: 2px solid #d1d5db;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
+    .card {
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,0.82);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: clamp(14px, 2.2vw, 30px);
+      backdrop-filter: blur(10px);
+    }
+
+    .center-card {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    .mode-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px;
+      margin-top: 24px;
+    }
+
+    .mode-btn {
+      border: 0;
+      border-radius: 24px;
+      padding: 30px 22px;
+      background: #fff;
+      cursor: pointer;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+      text-align: left;
+      transition: transform 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    .mode-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 18px 34px rgba(15, 23, 42, 0.16);
+    }
+
+    .mode-icon {
       font-size: 42px;
-      line-height: 1.25;
-      font-weight: 900;
-      word-break: keep-all;
-    }
-
-    .meta-row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
+      display: block;
       margin-bottom: 14px;
     }
 
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 36px;
-      padding: 8px 12px;
-      border-radius: 999px;
-      background: #e5e7eb;
-      font-size: 16px;
-      font-weight: 800;
-    }
-
-    .badge.answer-hidden {
-      background: #e5e7eb;
-      color: #374151;
-    }
-
-    .badge.answer-open {
-      background: #dcfce7;
-      color: #166534;
-    }
-
-    .button-row {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 10px;
-    }
-
-    button {
-      border: 0;
-      border-radius: 10px;
-      padding: 16px 12px;
-      font-size: 20px;
+    .mode-title {
+      font-size: 28px;
       font-weight: 900;
-      cursor: pointer;
-    }
-
-    button:active {
-      transform: translateY(1px);
-    }
-
-    .btn-start {
-      background: #2563eb;
-      color: white;
-    }
-
-    .btn-reveal {
-      background: #16a34a;
-      color: white;
-    }
-
-    .btn-next {
-      background: #374151;
-      color: white;
-    }
-
-    .btn-reset {
-      background: #dc2626;
-      color: white;
-    }
-
-    .btn-import {
-      background: #7c3aed;
-      color: white;
-    }
-
-    .btn-preview {
-      background: #4b5563;
-      color: white;
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-
-    .stat {
-      background: #f9fafb;
-      border: 1px solid #d1d5db;
-      border-radius: 12px;
-      padding: 16px;
-      text-align: center;
-    }
-
-    .stat-label {
-      font-size: 16px;
-      font-weight: 800;
-      color: #4b5563;
+      display: block;
       margin-bottom: 8px;
     }
 
-    .stat-value {
-      font-size: 54px;
-      line-height: 1;
-      font-weight: 900;
-    }
-
-    .o-value {
-      color: #2563eb;
-    }
-
-    .x-value {
-      color: #dc2626;
-    }
-
-    .ok-value {
-      color: #16a34a;
-    }
-
-    .table-wrap {
-      width: 100%;
-      overflow-x: auto;
-      border: 1px solid #d1d5db;
-      border-radius: 10px;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
+    .mode-desc {
       font-size: 16px;
-      background: white;
+      color: var(--muted);
+      line-height: 1.45;
     }
 
-    th,
-    td {
-      border-bottom: 1px solid #e5e7eb;
-      padding: 10px;
-      text-align: left;
-      vertical-align: top;
+    .form {
+      display: grid;
+      gap: 12px;
+      margin-top: 20px;
     }
 
-    th {
-      background: #f3f4f6;
-      font-weight: 900;
-    }
-
-    tr:last-child td {
-      border-bottom: 0;
-    }
-
-    .import-actions {
-      display: flex;
-      gap: 10px;
-      margin-top: 10px;
-      margin-bottom: 12px;
-    }
-
-    .import-actions button {
-      font-size: 17px;
-      padding: 12px 16px;
-    }
-
-    .message {
-      margin-top: 8px;
-      min-height: 24px;
+    label {
       font-weight: 800;
-      color: #dc2626;
+      font-size: 16px;
     }
 
-    .right-column {
-      position: sticky;
-      top: 16px;
+    input {
+      width: 100%;
+      border: 2px solid #dbeafe;
+      border-radius: 18px;
+      padding: 16px 18px;
+      font-size: 20px;
+      outline: none;
+      background: #fff;
     }
 
-    .compact-text {
-      font-size: 14px;
-      color: #4b5563;
+    input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.13);
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 16px;
+      padding: 14px 18px;
+      font-size: 17px;
+      font-weight: 900;
+      cursor: pointer;
+      color: white;
+      background: var(--primary);
+      transition: transform 0.12s ease, background 0.12s ease, opacity 0.12s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      background: var(--primary-dark);
+    }
+
+    .btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+      transform: none;
+    }
+
+    .btn.secondary {
+      background: #475569;
+    }
+
+    .btn.green {
+      background: var(--green);
+    }
+
+    .btn.red {
+      background: var(--red);
+    }
+
+    .btn.amber {
+      background: var(--amber);
+    }
+
+    .btn.light {
+      color: var(--ink);
+      background: #e5e7eb;
+    }
+
+    .screen {
+      display: none;
+    }
+
+    .screen.active {
+      display: block;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: minmax(420px, 1.1fr) minmax(320px, 0.9fr);
+      gap: clamp(10px, 1.6vw, 18px);
+      align-items: start;
+    }
+
+    .teacher-top {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: clamp(8px, 1.4vw, 12px);
+      margin-bottom: clamp(10px, 1.8vw, 18px);
+    }
+
+    .stat {
+      background: #fff;
+      border-radius: 20px;
+      padding: clamp(12px, 1.8vw, 18px);
+      border: 1px solid var(--line);
+    }
+
+    .stat .num {
+      font-size: 34px;
+      font-weight: 1000;
+      line-height: 1;
+    }
+
+    .stat .label {
       margin-top: 8px;
-      line-height: 1.5;
+      color: var(--muted);
+      font-weight: 800;
     }
 
-    .correct {
-      color: #16a34a;
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 8px 12px;
+      background: #eff6ff;
+      color: #1d4ed8;
+      font-weight: 900;
+      font-size: 15px;
+    }
+
+    .question-box {
+      min-height: clamp(138px, 24vh, 220px);
+      display: grid;
+      place-items: center;
+      text-align: center;
+      background: linear-gradient(135deg, #ffffff, #eff6ff);
+      border: 2px dashed #bfdbfe;
+      border-radius: 24px;
+      padding: clamp(14px, 2vw, 24px);
+      margin: clamp(10px, 1.6vw, 18px) 0;
+    }
+
+    .question-title {
+      font-size: clamp(42px, 7vw, 82px);
+      font-weight: 1000;
+      letter-spacing: -0.04em;
+      margin: 0;
+    }
+
+    .question-hint {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .timer-large {
+      font-size: clamp(46px, 10vw, 126px);
+      line-height: 1;
+      font-weight: 1000;
+      letter-spacing: -0.06em;
+      color: var(--red);
+      text-align: center;
+    }
+
+    .timer-label {
+      text-align: center;
+      color: var(--muted);
+      font-size: 20px;
+      font-weight: 900;
+      margin-top: 8px;
+    }
+
+    .teacher-list,
+    .score-list,
+    .answer-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+      max-height: min(34vh, 360px);
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .list-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: center;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 12px 14px;
+      font-weight: 850;
+    }
+
+    .badge {
+      min-width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      display: inline-grid;
+      place-items: center;
+      color: #fff;
+      background: var(--primary);
+      font-weight: 1000;
+    }
+
+    .badge.green {
+      background: var(--green);
+    }
+
+    .badge.red {
+      background: var(--red);
+    }
+
+    .badge.gray {
+      background: #64748b;
+    }
+
+    .small {
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .notice {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
+      color: #9a3412;
+      font-weight: 800;
+      line-height: 1.45;
+    }
+
+    .error {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #991b1b;
+      font-weight: 900;
+      line-height: 1.45;
+      white-space: pre-line;
+    }
+
+    .success {
+      margin-top: 14px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: #ecfdf5;
+      border: 1px solid #bbf7d0;
+      color: #166534;
+      font-weight: 900;
+      line-height: 1.45;
+    }
+
+    .student-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: clamp(10px, 1.8vw, 18px);
+      width: min(920px, 100%);
+      margin: 0 auto;
+    }
+
+    .mybar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 16px 20px;
+    }
+
+    .my-name {
+      font-size: 24px;
+      font-weight: 1000;
+    }
+
+    .my-score {
+      font-size: 24px;
+      font-weight: 1000;
+      color: var(--primary);
+    }
+
+    .answer-form {
+      display: grid;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .answer-input {
+      text-align: center;
+      font-size: clamp(26px, 5vw, 44px);
+      font-weight: 1000;
+      letter-spacing: 0.06em;
+    }
+
+    .answer-submit {
+      font-size: 24px;
+      padding: 18px 22px;
+    }
+
+    .result-big {
+      text-align: center;
+      font-size: clamp(24px, 5vw, 48px);
+      font-weight: 1000;
+      padding: 20px;
+      border-radius: 22px;
+      background: #fff;
+      border: 2px solid var(--line);
+      line-height: 1.25;
+    }
+
+    .result-big.correct {
+      border-color: #86efac;
+      color: var(--green);
+      background: #f0fdf4;
+    }
+
+    .result-big.wrong {
+      border-color: #fca5a5;
+      color: var(--red);
+      background: #fef2f2;
+    }
+
+    .final-rank {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .final-item {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 12px;
+      align-items: center;
+      border-radius: 18px;
+      background: white;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      font-size: 18px;
       font-weight: 900;
     }
 
-    .wrong {
-      color: #dc2626;
-      font-weight: 900;
+    .confetti {
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      z-index: 9999;
     }
 
-    @media (max-width: 900px) {
-      .main-grid {
+    .confetti span {
+      position: absolute;
+      top: -20px;
+      width: 10px;
+      height: 18px;
+      background: #f59e0b;
+      animation: fall 2.6s linear forwards;
+      opacity: 0.9;
+      border-radius: 2px;
+    }
+
+    @keyframes fall {
+      to {
+        transform: translateY(105vh) rotate(720deg);
+      }
+    }
+
+    @media (max-width: 860px) {
+      .grid,
+      .mode-grid,
+      .teacher-top {
         grid-template-columns: 1fr;
       }
 
-      .right-column {
-        position: static;
+      .app {
+        width: 100%;
+        padding: 10px;
       }
 
-      .button-row {
-        grid-template-columns: 1fr 1fr;
+      .card {
+        border-radius: 20px;
       }
 
-      .current-question {
-        font-size: 30px;
+      .btn {
+        width: 100%;
       }
 
-      .top-bar {
-        flex-direction: column;
-        align-items: stretch;
+      .mybar {
+        grid-template-columns: 1fr;
       }
     }
+
+    @media (min-width: 861px) and (max-height: 760px) {
+      .app {
+        padding-top: 10px;
+        padding-bottom: 10px;
+      }
+
+      .hero {
+        margin-bottom: 8px;
+      }
+
+      .hero h1 {
+        font-size: clamp(24px, 3.6vw, 42px);
+      }
+
+      .hero p {
+        font-size: 15px;
+      }
+
+      .card {
+        padding: 14px;
+      }
+
+      .stat .num {
+        font-size: 28px;
+      }
+
+      .question-box {
+        min-height: 118px;
+      }
+
+      .question-title {
+        font-size: clamp(34px, 5.2vw, 62px);
+      }
+
+      .timer-large {
+        font-size: clamp(44px, 9vw, 92px);
+      }
+
+      .teacher-list,
+      .score-list,
+      .answer-list {
+        max-height: min(30vh, 280px);
+      }
+    }
+
+    @media (max-width: 480px) {
+      .hero h1 {
+        font-size: 25px;
+      }
+
+      .hero p {
+        font-size: 14px;
+      }
+
+      .mode-btn {
+        padding: 20px 16px;
+      }
+
+      .mode-title {
+        font-size: 23px;
+      }
+
+      .question-title {
+        font-size: clamp(38px, 13vw, 56px);
+      }
+
+      .question-hint,
+      .timer-label {
+        font-size: 16px;
+      }
+
+      .my-name,
+      .my-score {
+        font-size: 20px;
+      }
+    }
+
   </style>
 </head>
 
 <body>
-  <div class="page">
-    <header class="top-bar">
-      <h1>실시간 OX 퀴즈 관리자</h1>
-      <div id="topStatus" class="top-status">상태 확인 중</div>
+  <div class="app">
+    <header class="hero">
+      <h1>⚡ 실시간 4글자 퀴즈</h1>
+      <p>앞 2글자를 보고 뒤 2글자를 빠르게 맞히는 교실용 실시간 게임</p>
     </header>
 
-    <div class="main-grid">
-      <main>
-        <section class="panel">
-          <h2 class="section-title">현재 문제</h2>
+    <!-- 시작 화면 -->
+    <section id="screenHome" class="screen active">
+      <div class="card center-card">
+        <span class="status-pill">Firebase 익명 로그인 + Realtime Database</span>
+        <div class="mode-grid">
+          <button class="mode-btn" id="goTeacherBtn">
+            <span class="mode-icon">👩‍🏫</span>
+            <span class="mode-title">강사로 입장</span>
+            <span class="mode-desc">비밀번호 확인 후 게임을 운영합니다.</span>
+          </button>
+          <button class="mode-btn" id="goStudentBtn">
+            <span class="mode-icon">🙋</span>
+            <span class="mode-title">학생으로 입장</span>
+            <span class="mode-desc">닉네임 입력 후 퀴즈에 참여합니다.</span>
+          </button>
+        </div>
+        <div id="configWarning" class="notice" style="display:none;"></div>
+      </div>
+    </section>
 
-          <label for="questionSelect">문제 선택</label>
-          <select id="questionSelect"></select>
+    <!-- 강사 로그인 화면 -->
+    <section id="screenTeacherLogin" class="screen">
+      <div class="card center-card">
+        <h2>강사 입장</h2>
+        <p class="small">강사 비밀번호는 Vercel 환경변수에서 안전하게 확인합니다.</p>
+        <div class="form">
+          <label for="teacherPassword">강사 비밀번호</label>
+          <input id="teacherPassword" type="password" placeholder="강사 비밀번호 입력" autocomplete="off" />
+          <button id="teacherLoginBtn" class="btn">강사 화면 열기</button>
+          <button class="btn light" data-back>처음으로</button>
+        </div>
+        <div id="teacherLoginMsg"></div>
+      </div>
+    </section>
 
-          <div id="questionText" class="current-question">문제를 불러오는 중입니다.</div>
+    <!-- 학생 로그인 화면 -->
+    <section id="screenStudentLogin" class="screen">
+      <div class="card center-card">
+        <h2>학생 입장</h2>
+        <p class="small">닉네임을 입력하면 익명 로그인 후 게임방에 들어갑니다.</p>
+        <div class="form">
+          <label for="studentNickname">닉네임</label>
+          <input id="studentNickname" type="text" maxlength="12" placeholder="예: 민준" autocomplete="off" />
+          <button id="studentJoinBtn" class="btn green">입장하기</button>
+          <button class="btn light" data-back>처음으로</button>
+        </div>
+        <div id="studentLoginMsg"></div>
+      </div>
+    </section>
 
-          <div class="meta-row">
-            <span id="questionNumberBadge" class="badge">문제 번호: -</span>
-            <span id="statusBadge" class="badge">상태: 확인 중</span>
-            <span id="answerBadge" class="badge answer-hidden">정답: 비공개</span>
+    <!-- 강사 화면 -->
+    <section id="screenTeacher" class="screen">
+      <div class="teacher-top">
+        <div class="stat">
+          <div id="teacherPlayerCount" class="num">0</div>
+          <div class="label">참가자</div>
+        </div>
+        <div class="stat">
+          <div id="teacherQuestionIndex" class="num">0/0</div>
+          <div class="label">문제</div>
+        </div>
+        <div class="stat">
+          <div id="teacherTimer" class="num">20</div>
+          <div class="label">남은 시간</div>
+        </div>
+        <div class="stat">
+          <div id="teacherStatus" class="num">대기</div>
+          <div class="label">상태</div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <span class="status-pill">강사 운영 화면</span>
+          <div class="btn-row">
+            <button id="startGameBtn" class="btn green">게임 시작</button>
+            <button id="nextQuestionBtn" class="btn">다음 문제</button>
+            <button id="endGameBtn" class="btn amber">게임 종료</button>
+            <button id="resetGameBtn" class="btn red">초기화</button>
           </div>
 
-          <div class="button-row">
-            <button class="btn-start" onclick="startQuestion()">문제 시작</button>
-            <button class="btn-reveal" onclick="revealAnswer()">정답 공개</button>
-            <button class="btn-next" onclick="goNextQuestion()">다음 문제</button>
-            <button class="btn-reset" onclick="resetStudents()">답변 초기화</button>
-          </div>
-        </section>
-
-        <section class="panel">
-          <h2 class="section-title">문제 일괄 등록</h2>
-          <textarea id="bulkQuestionInput" placeholder="시트에서 복사한 내용을 붙여넣으세요.
-가능 형식 1: 문제 / 정답
-가능 형식 2: 번호 / 문제 / 정답
-
-예:
-번호	문제	정답
-1	인터넷에 올린 글과 사진은 시간이 지나도 다른 사람이 저장해 두었을 수 있다.	O
-2	AI가 알려준 답은 항상 정확하므로 다른 자료와 비교하지 않아도 된다.	X"></textarea>
-
-          <div class="import-actions">
-            <button class="btn-preview" onclick="previewQuestions()">미리보기</button>
-            <button class="btn-import" onclick="saveQuestionsToFirebase()">Firebase에 저장</button>
-          </div>
-
-          <div id="bulkMessage" class="message"></div>
-
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th style="width: 80px;">번호</th>
-                  <th>문제</th>
-                  <th style="width: 80px;">정답</th>
-                </tr>
-              </thead>
-              <tbody id="previewTable">
-                <tr>
-                  <td colspan="3">아직 미리보기 내용이 없습니다.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="compact-text">
-            저장하면 기존 Firebase의 questions 목록이 새 문제 목록으로 교체됩니다.
-          </div>
-        </section>
-
-        <section class="panel">
-          <h2 class="section-title">학생 응답 목록</h2>
-          <div class="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>닉네임</th>
-                  <th style="width: 90px;">선택</th>
-                  <th style="width: 110px;">정답 여부</th>
-                </tr>
-              </thead>
-              <tbody id="studentTable">
-                <tr>
-                  <td colspan="3">아직 참여자가 없습니다.</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-      </main>
-
-      <aside class="right-column">
-        <section class="panel">
-          <h2 class="section-title">실시간 집계</h2>
-          <div class="stats-grid">
-            <div class="stat">
-              <div class="stat-label">O 선택</div>
-              <div id="oCount" class="stat-value o-value">0</div>
-            </div>
-            <div class="stat">
-              <div class="stat-label">X 선택</div>
-              <div id="xCount" class="stat-value x-value">0</div>
-            </div>
-            <div class="stat">
-              <div class="stat-label">제출</div>
-              <div id="submitCount" class="stat-value">0</div>
-            </div>
-            <div class="stat">
-              <div class="stat-label">정답</div>
-              <div id="correctCount" class="stat-value ok-value">0</div>
+          <div class="question-box">
+            <div>
+              <p id="teacherQuestion" class="question-title">대기 중</p>
+              <div id="teacherHint" class="question-hint">학생들이 입장하면 게임을 시작하세요.</div>
             </div>
           </div>
-        </section>
-      </aside>
-    </div>
+
+          <h3>이번 문제 제출 순위</h3>
+          <div id="teacherAnswers" class="answer-list"></div>
+        </div>
+
+        <div class="card">
+          <h3>참가자 목록</h3>
+          <div id="teacherPlayers" class="teacher-list"></div>
+
+          <h3 style="margin-top:24px;">누적 점수판</h3>
+          <div id="teacherScores" class="score-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 학생 화면 -->
+    <section id="screenStudent" class="screen">
+      <div class="student-layout">
+        <div class="mybar">
+          <div>
+            <div class="small">내 닉네임</div>
+            <div id="myNickname" class="my-name">-</div>
+          </div>
+          <div>
+            <div class="small">내 점수</div>
+            <div id="myScore" class="my-score">0점</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="timer-large" id="studentTimer">--</div>
+          <div class="timer-label">게임 잔여 타임</div>
+
+          <div class="question-box">
+            <div>
+              <p id="studentQuestion" class="question-title">대기 중</p>
+              <div id="studentHint" class="question-hint">강사가 게임을 시작할 때까지 기다려 주세요.</div>
+            </div>
+          </div>
+
+          <div id="studentAnswerArea" class="answer-form">
+            <input id="studentAnswerInput" class="answer-input" type="text" maxlength="8" placeholder="뒤 2글자 입력" autocomplete="off" />
+            <button id="submitAnswerBtn" class="btn green answer-submit">정답 제출</button>
+          </div>
+
+          <div id="studentResult"></div>
+        </div>
+
+        <div id="studentFinalCard" class="card" style="display:none;">
+          <h2>🏁 최종 결과</h2>
+          <div id="studentFinalMessage" class="result-big"></div>
+          <div id="studentFinalRanking" class="final-rank"></div>
+        </div>
+      </div>
+    </section>
   </div>
 
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getDatabase,
-      ref,
-      onValue,
-      update,
-      set
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+  <div id="confetti" class="confetti" style="display:none;"></div>
 
+  <script>
+    /**************************************************************
+     * 1. Firebase 설정
+     * 아래 firebaseConfig 값을 본인 Firebase 프로젝트 값으로 교체하세요.
+     * Authentication: 익명 로그인 사용 설정 필요
+     * Realtime Database: 생성 후 databaseURL 입력 필요
+     **************************************************************/
     const firebaseConfig = {
-      apiKey: "AIzaSyAqqQYRZGCLrL3ftdIToPrQ_7q2EwcmaaM",
-      authDomain: "ox-quiz-game-c8248.firebaseapp.com",
-      databaseURL: "https://ox-quiz-game-c8248-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "ox-quiz-game-c8248",
-      storageBucket: "ox-quiz-game-c8248.firebasestorage.app",
-      messagingSenderId: "1054918706871",
-      appId: "1:1054918706871:web:83ef8514154c53e1436f32",
-      measurementId: "G-8CQQCCWCMM"
+      apiKey: "AIzaSyBf6golEfxEM8FAAxs_UHOMmKSOOJ8Kc3s",
+      authDomain: "word-quiz-ae48b.firebaseapp.com",
+      databaseURL: "https://word-quiz-ae48b-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "word-quiz-ae48b",
+      storageBucket: "word-quiz-ae48b.firebasestorage.app",
+      messagingSenderId: "900767100112",
+      appId: "1:900767100112:web:5ff1b0114cb0390d80c2d5"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
+    /**************************************************************
+     * 2. 게임 기본 설정
+     **************************************************************/
+    const ROOM_ID = "defaultRoom";
+    const QUESTION_TIME = 20;
 
-    let questions = {};
-    let questionIds = [];
-    let currentQuestionId = "q1";
-    let currentAnswer = "O";
-    let gameStatus = "waiting";
-    let students = {};
-    let parsedQuestions = [];
+    // AI 생성 느낌의 4글자 표현 예시.
+    // 학생에게는 front-____ 형태로 보여주고 back을 입력하게 합니다.
+    const QUESTIONS = [
+      { full: "스파게티", front: "스파", back: "게티", hint: "음식" },
+      { full: "텔레비전", front: "텔레", back: "비전", hint: "전자기기" },
+      { full: "새옹지마", front: "새옹", back: "지마", hint: "고사성어" },
+      { full: "천지누설", front: "천지", back: "누설", hint: "비밀이 드러남" },
+      { full: "고진감래", front: "고진", back: "감래", hint: "고생 끝에 즐거움" },
+      { full: "우왕좌왕", front: "우왕", back: "좌왕", hint: "이리저리 갈팡질팡" },
+      { full: "일석이조", front: "일석", back: "이조", hint: "한 번에 두 가지 이익" },
+      { full: "동문서답", front: "동문", back: "서답", hint: "엉뚱한 대답" },
+      { full: "작심삼일", front: "작심", back: "삼일", hint: "결심이 오래가지 않음" },
+      { full: "시시각각", front: "시시", back: "각각", hint: "시간이 지날 때마다" },
+      { full: "오매불망", front: "오매", back: "불망", hint: "잊지 못하고 그리워함" },
+      { full: "이심전심", front: "이심", back: "전심", hint: "마음이 통함" },
+      { full: "유유자적", front: "유유", back: "자적", hint: "여유롭고 편안함" },
+      { full: "승승장구", front: "승승", back: "장구", hint: "계속 잘 나아감" },
+      { full: "좌충우돌", front: "좌충", back: "우돌", hint: "이리저리 부딪힘" },
+      { full: "알쏭달쏭", front: "알쏭", back: "달쏭", hint: "헷갈리는 상태" },
+      { full: "아슬아슬", front: "아슬", back: "아슬", hint: "위태로운 느낌" },
+      { full: "반짝반짝", front: "반짝", back: "반짝", hint: "빛나는 모습" },
+      { full: "두근두근", front: "두근", back: "두근", hint: "가슴이 뛰는 소리" },
+      { full: "싱글벙글", front: "싱글", back: "벙글", hint: "밝게 웃는 모습" },
+      { full: "시끌벅적", front: "시끌", back: "벅적", hint: "사람이 많고 소란함" },
+      { full: "아기자기", front: "아기", back: "자기", hint: "작고 귀여운 느낌" },
+      { full: "무럭무럭", front: "무럭", back: "무럭", hint: "잘 자라는 모습" },
+      { full: "울긋불긋", front: "울긋", back: "불긋", hint: "여러 색이 섞인 모습" },
+      { full: "차근차근", front: "차근", back: "차근", hint: "순서대로 천천히" },
+      { full: "허둥지둥", front: "허둥", back: "지둥", hint: "당황해서 급한 모습" },
+      { full: "티격태격", front: "티격", back: "태격", hint: "가볍게 다투는 모습" },
+      { full: "와이파이", front: "와이", back: "파이", hint: "무선 인터넷" },
+      { full: "비밀번호", front: "비밀", back: "번호", hint: "로그인할 때 필요함" },
+      { full: "인공지능", front: "인공", back: "지능", hint: "AI의 우리말" }
+    ];
 
-    const topStatus = document.getElementById("topStatus");
-    const questionSelect = document.getElementById("questionSelect");
-    const questionText = document.getElementById("questionText");
-    const questionNumberBadge = document.getElementById("questionNumberBadge");
-    const statusBadge = document.getElementById("statusBadge");
-    const answerBadge = document.getElementById("answerBadge");
-    const oCountEl = document.getElementById("oCount");
-    const xCountEl = document.getElementById("xCount");
-    const submitCountEl = document.getElementById("submitCount");
-    const correctCountEl = document.getElementById("correctCount");
-    const studentTable = document.getElementById("studentTable");
-    const bulkQuestionInput = document.getElementById("bulkQuestionInput");
-    const previewTable = document.getElementById("previewTable");
-    const bulkMessage = document.getElementById("bulkMessage");
+    /**************************************************************
+     * 3. 전역 상태
+     **************************************************************/
+    let app = null;
+    let auth = null;
+    let db = null;
+    let roomRef = null;
+    let currentRole = null;
+    let currentUid = null;
+    let currentNickname = "";
+    let latestRoom = null;
+    let teacherTimerId = null;
+    let isJoining = false;
+    let isSubmitting = false;
 
-    listenQuestions();
-    listenGame();
-    listenStudents();
+    /**************************************************************
+     * 4. DOM 헬퍼
+     **************************************************************/
+    const $ = (id) => document.getElementById(id);
 
-    function listenQuestions() {
-      onValue(ref(db, "questions"), (snapshot) => {
-        questions = snapshot.val() || {};
-        questionIds = Object.keys(questions).sort((a, b) => {
-          const numA = Number(a.replace("q", ""));
-          const numB = Number(b.replace("q", ""));
-          return numA - numB;
-        });
-
-        renderQuestionSelect();
-        renderCurrentQuestion();
-      });
+    function showScreen(screenId) {
+      document.querySelectorAll(".screen").forEach((el) => el.classList.remove("active"));
+      $(screenId).classList.add("active");
     }
 
-    function listenGame() {
-      onValue(ref(db, "game"), (snapshot) => {
-        const game = snapshot.val() || {};
-
-        currentQuestionId = game.currentQuestionId || "q1";
-        gameStatus = game.status || "waiting";
-
-        renderQuestionSelect();
-        renderCurrentQuestion();
-        renderStats();
-      });
-    }
-
-    function listenStudents() {
-      onValue(ref(db, "students"), (snapshot) => {
-        students = snapshot.val() || {};
-        renderStats();
-        renderStudentTable();
-      });
-    }
-
-    function renderQuestionSelect() {
-      questionSelect.innerHTML = "";
-
-      if (questionIds.length === 0) {
-        const option = document.createElement("option");
-        option.textContent = "등록된 문제가 없습니다.";
-        questionSelect.appendChild(option);
+    function showMessage(targetId, message, type = "notice") {
+      const target = $(targetId);
+      if (!target) return;
+      if (!message) {
+        target.innerHTML = "";
         return;
       }
-
-      questionIds.forEach((id) => {
-        const option = document.createElement("option");
-        option.value = id;
-        option.textContent = `${id} - ${questions[id].text}`;
-        if (id === currentQuestionId) option.selected = true;
-        questionSelect.appendChild(option);
-      });
+      target.innerHTML = `<div class="${type}">${escapeHtml(message)}</div>`;
     }
 
-    function renderCurrentQuestion() {
-      const q = questions[currentQuestionId];
-
-      if (!q) {
-        questionText.textContent = "문제가 없습니다.";
-        topStatus.textContent = "문제 없음";
-        questionNumberBadge.textContent = "문제 번호: -";
-        statusBadge.textContent = "상태: 문제 없음";
-        answerBadge.textContent = "정답: 비공개";
-        answerBadge.className = "badge answer-hidden";
-        return;
-      }
-
-      currentAnswer = q.answer;
-      questionText.textContent = q.text;
-      questionNumberBadge.textContent = `문제 번호: ${currentQuestionId}`;
-
-      const statusText = {
-        waiting: "대기 중",
-        playing: "문제 진행 중",
-        revealed: "정답 공개"
-      }[gameStatus] || gameStatus;
-
-      topStatus.textContent = statusText;
-      statusBadge.textContent = `상태: ${statusText}`;
-
-      if (gameStatus === "revealed") {
-        answerBadge.textContent = `정답: ${currentAnswer}`;
-        answerBadge.className = "badge answer-open";
-      } else {
-        answerBadge.textContent = "정답: 비공개";
-        answerBadge.className = "badge answer-hidden";
-      }
-    }
-
-    function parseBulkQuestions() {
-      const raw = bulkQuestionInput.value.trim();
-      bulkMessage.textContent = "";
-
-      if (!raw) {
-        throw new Error("붙여넣은 문제가 없습니다.");
-      }
-
-      const lines = raw
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter((line) => line.length > 0);
-
-      const result = [];
-
-      lines.forEach((line, index) => {
-        let parts = line.split("\t").map((item) => item.trim());
-
-        if (parts.length < 2) {
-          parts = line.split(",").map((item) => item.trim());
-        }
-
-        if (parts.length < 2) {
-          throw new Error(`${index + 1}번째 줄의 형식이 맞지 않습니다.`);
-        }
-
-        const first = parts[0];
-        const last = parts[parts.length - 1].toUpperCase();
-
-        if (index === 0) {
-          const joined = parts.join(" ");
-          if (joined.includes("문제") && joined.includes("정답")) {
-            return;
-          }
-        }
-
-        let text = "";
-        let answer = last;
-
-        if ((parts.length >= 3 && /^\d+$/.test(first)) || first === "번호") {
-          text = parts.slice(1, parts.length - 1).join(" ").trim();
-        } else {
-          text = parts.slice(0, parts.length - 1).join(" ").trim();
-        }
-
-        if (!text) {
-          throw new Error(`${index + 1}번째 줄에 문제 내용이 없습니다.`);
-        }
-
-        if (answer !== "O" && answer !== "X") {
-          throw new Error(`${index + 1}번째 줄의 정답은 O 또는 X만 가능합니다.`);
-        }
-
-        result.push({ text, answer });
-      });
-
-      if (result.length === 0) {
-        throw new Error("등록할 문제가 없습니다.");
-      }
-
-      return result;
-    }
-
-    window.previewQuestions = function () {
-      try {
-        parsedQuestions = parseBulkQuestions();
-        renderPreview(parsedQuestions);
-        bulkMessage.style.color = "#166534";
-        bulkMessage.textContent = `${parsedQuestions.length}개의 문제를 확인했습니다.`;
-      } catch (error) {
-        parsedQuestions = [];
-        previewTable.innerHTML = '<tr><td colspan="3">미리보기 실패</td></tr>';
-        bulkMessage.style.color = "#dc2626";
-        bulkMessage.textContent = error.message;
-      }
-    };
-
-    function renderPreview(list) {
-      previewTable.innerHTML = "";
-
-      list.forEach((item, index) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>q${index + 1}</td>
-          <td>${escapeHtml(item.text)}</td>
-          <td>${item.answer}</td>
-        `;
-        previewTable.appendChild(tr);
-      });
-    }
-
-    window.saveQuestionsToFirebase = async function () {
-      try {
-        parsedQuestions = parseBulkQuestions();
-
-        const newQuestions = {};
-        parsedQuestions.forEach((item, index) => {
-          newQuestions[`q${index + 1}`] = {
-            text: item.text,
-            answer: item.answer
-          };
-        });
-
-        await set(ref(db, "questions"), newQuestions);
-        await update(ref(db), {
-          "game/currentQuestionId": "q1",
-          "game/status": "waiting",
-          "game/showAnswer": false
-        });
-        await clearStudentAnswers();
-
-        renderPreview(parsedQuestions);
-        bulkMessage.style.color = "#166534";
-        bulkMessage.textContent = `${parsedQuestions.length}개의 문제를 Firebase에 저장했습니다.`;
-      } catch (error) {
-        bulkMessage.style.color = "#dc2626";
-        bulkMessage.textContent = error.message;
-      }
-    };
-
-    questionSelect.addEventListener("change", async () => {
-      currentQuestionId = questionSelect.value;
-      await update(ref(db), {
-        "game/currentQuestionId": currentQuestionId,
-        "game/status": "waiting",
-        "game/showAnswer": false
-      });
-      await clearStudentAnswers();
-    });
-
-    window.startQuestion = async function () {
-      if (!currentQuestionId) {
-        alert("문제를 먼저 선택하세요.");
-        return;
-      }
-
-      await update(ref(db), {
-        "game/currentQuestionId": currentQuestionId,
-        "game/status": "playing",
-        "game/showAnswer": false
-      });
-
-      await clearStudentAnswers();
-    };
-
-    window.revealAnswer = async function () {
-      await update(ref(db), {
-        "game/status": "revealed",
-        "game/showAnswer": true
-      });
-
-      const updates = {};
-      Object.keys(students).forEach((studentId) => {
-        const answer = students[studentId].answer || "";
-        updates[`students/${studentId}/isCorrect`] = answer === currentAnswer;
-      });
-
-      if (Object.keys(updates).length > 0) {
-        await update(ref(db), updates);
-      }
-    };
-
-    window.goNextQuestion = async function () {
-      if (questionIds.length === 0) {
-        alert("등록된 문제가 없습니다.");
-        return;
-      }
-
-      const currentIndex = questionIds.indexOf(currentQuestionId);
-      const nextIndex = currentIndex < 0 ? 0 : (currentIndex + 1) % questionIds.length;
-      const nextId = questionIds[nextIndex];
-
-      currentQuestionId = nextId;
-
-      await update(ref(db), {
-        "game/currentQuestionId": nextId,
-        "game/status": "waiting",
-        "game/showAnswer": false
-      });
-
-      await clearStudentAnswers();
-    };
-
-    window.resetStudents = async function () {
-      await clearStudentAnswers();
-    };
-
-    async function clearStudentAnswers() {
-      const updates = {};
-
-      Object.keys(students).forEach((studentId) => {
-        updates[`students/${studentId}/answer`] = "";
-        updates[`students/${studentId}/isCorrect`] = false;
-      });
-
-      if (Object.keys(updates).length > 0) {
-        await update(ref(db), updates);
-      }
-    }
-
-    function renderStats() {
-      const list = Object.values(students);
-      const oCount = list.filter((s) => s.answer === "O").length;
-      const xCount = list.filter((s) => s.answer === "X").length;
-      const submitCount = list.filter((s) => s.answer === "O" || s.answer === "X").length;
-      const correctCount = gameStatus === "revealed"
-        ? list.filter((s) => s.answer && s.answer === currentAnswer).length
-        : 0;
-= oCount;
-      xCountEl.textContent = xCount;
-      submitCountEl.textContent = submitCount;
-      correctCountEl.textContent = correctCount;
-    }
-
-    function renderStudentTable() {
-      const entries = Object.entries(students);
-
-      if (entries.length === 0) {
-        studentTable.innerHTML = '<tr><td colspan="3">아직 참여자가 없습니다.</td></tr>';
-        return;
-      }
-
-      studentTable.innerHTML = "";
-
-      entries.forEach(([id, student]) => {
-        const tr = document.createElement("tr");
-
-        const answer = student.answer || "-";
-        const result =
-          gameStatus !== "revealed"
-            ? "-"
-            : answer === currentAnswer
-              ? "정답"
-              : "오답";
-
-        tr.innerHTML = `
-          <td>${escapeHtml(student.name || id)}</td>
-          <td>${answer}</td>
-          <td class="${result === "정답" ? "correct" : result === "오답" ? "wrong" : ""}">${result}</td>
-        `;
-
-        studentTable.appendChild(tr);
-      });
-    }
-
-    function escapeHtml(text) {
-      return String(text)
+    function escapeHtml(value) {
+      return String(value ?? "")
         .replaceAll("&", "&amp;")
         .replaceAll("<", "&lt;")
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
+    }
+
+    function normalizeAnswer(value) {
+      return String(value ?? "")
+        .trim()
+        .replace(/\s+/g, "")
+        .replace(/-/g, "")
+        .toLowerCase();
+    }
+
+    function getPlayers(room = latestRoom) {
+      return Object.entries(room?.players || {}).map(([uid, player]) => ({
+        uid,
+        ...player
+      }));
+    }
+
+    function getActivePlayers(room = latestRoom) {
+      // 접속이 끊겨도 수업 중 점수판에는 보이는 편이 좋아서 players 전체를 참가자로 계산합니다.
+      return getPlayers(room);
+    }
+
+    function getScores(room = latestRoom) {
+      const players = getPlayers(room);
+      const scores = room?.scores || {};
+      return players.map((player) => ({
+        uid: player.uid,
+        nickname: player.nickname || "이름 없음",
+        score: Number(scores[player.uid]?.score || player.score || 0)
+      })).sort((a, b) => b.score - a.score || a.nickname.localeCompare(b.nickname, "ko"));
+    }
+
+    function getQuestion(index) {
+      if (index < 0 || index >= QUESTIONS.length) return null;
+      return QUESTIONS[index];
+    }
+
+    function getCurrentQuestion(room = latestRoom) {
+      const index = Number(room?.currentQuestionIndex ?? -1);
+      return getQuestion(index);
+    }
+
+    function statusLabel(status) {
+      if (status === "waiting") return "대기";
+      if (status === "playing") return "진행";
+      if (status === "locked") return "종료";
+      if (status === "ended") return "완료";
+      return "대기";
+    }
+
+    /**************************************************************
+     * 5. Firebase 초기화
+     **************************************************************/
+    function hasFirebaseConfig() {
+      return Boolean(
+        firebaseConfig.apiKey &&
+        firebaseConfig.authDomain &&
+        firebaseConfig.databaseURL &&
+        firebaseConfig.projectId &&
+        firebaseConfig.appId
+      );
+    }
+
+    function initFirebase() {
+      if (!hasFirebaseConfig()) {
+        $("configWarning").style.display = "block";
+        $("configWarning").textContent =
+          "아직 Firebase 설정값이 비어 있습니다. 코드 상단의 firebaseConfig를 입력한 뒤 사용하세요.";
+        return false;
+      }
+
+      try {
+        if (!firebase.apps.length) {
+          app = firebase.initializeApp(firebaseConfig);
+        } else {
+          app = firebase.app();
+        }
+
+        auth = firebase.auth();
+        db = firebase.database();
+        roomRef = db.ref(`rooms/${ROOM_ID}`);
+        return true;
+      } catch (error) {
+        $("configWarning").style.display = "block";
+        $("configWarning").textContent = "Firebase 초기화 오류: " + error.message;
+        return false;
+      }
+    }
+
+    async function ensureAnonymousAuth() {
+      if (!auth) throw new Error("Firebase Auth가 초기화되지 않았습니다.");
+
+      // 이미 로그인되어 있으면 재사용합니다. 새로고침 시 같은 익명 계정이 유지되는 경우가 많습니다.
+      if (auth.currentUser?.uid) {
+        return auth.currentUser;
+      }
+
+      const userCredential = await auth.signInAnonymously();
+      if (!userCredential.user?.uid) {
+        throw new Error("익명 로그인은 성공했지만 UID를 확인하지 못했습니다.");
+      }
+      return userCredential.user;
+    }
+
+    /**************************************************************
+     * 6. 방 기본값 생성
+     **************************************************************/
+    async function ensureRoomExists() {
+      const snap = await roomRef.get();
+      if (!snap.exists()) {
+        await roomRef.set({
+          gameStatus: "waiting",
+          currentQuestionIndex: -1,
+          currentQuestion: null,
+          questionTime: QUESTION_TIME,
+          timer: {
+            remaining: QUESTION_TIME,
+            endAt: 0
+          },
+          createdAt: firebase.database.ServerValue.TIMESTAMP,
+          updatedAt: firebase.database.ServerValue.TIMESTAMP
+        });
+      }
+    }
+
+    function subscribeRoom() {
+      roomRef.on("value", (snapshot) => {
+        latestRoom = snapshot.val() || {};
+        if (currentRole === "teacher") renderTeacher(latestRoom);
+        if (currentRole === "student") renderStudent(latestRoom);
+      });
+    }
+
+    /**************************************************************
+     * 7. 강사 입장
+     * 중요: 강사 비밀번호는 index.html에 저장하지 않습니다.
+     * Vercel 서버리스 API(/api/check-admin)가 환경변수 ADMIN_PASSWORD와 비교합니다.
+     **************************************************************/
+    async function verifyTeacherPassword(password) {
+      const response = await fetch("/api/check-admin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ password })
+      });
+
+      let data = {};
+      try {
+        data = await response.json();
+      } catch (_) {
+        data = {};
+      }
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.message || "비밀번호가 맞지 않거나 확인 서버에 연결할 수 없습니다.");
+      }
+
+      return true;
+    }
+
+    async function teacherLogin() {
+      const password = $("teacherPassword").value.trim();
+
+      if (!password) {
+        showMessage("teacherLoginMsg", "강사 비밀번호를 입력하세요.", "error");
+        return;
+      }
+
+      $("teacherLoginBtn").disabled = true;
+      showMessage("teacherLoginMsg", "강사 비밀번호 확인 중입니다...", "notice");
+
+      try {
+        await verifyTeacherPassword(password);
+
+        if (!initFirebase()) {
+          showMessage("teacherLoginMsg", "Firebase 설정값을 먼저 입력해야 합니다.", "error");
+          return;
+        }
+
+        showMessage("teacherLoginMsg", "강사 익명 로그인 중입니다...", "notice");
+
+        const user = await ensureAnonymousAuth();
+        currentUid = user.uid;
+        currentRole = "teacher";
+
+        await ensureRoomExists();
+        await roomRef.child(`teacherSessions/${currentUid}`).set({
+          uid: currentUid,
+          enteredAt: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        subscribeRoom();
+        showMessage("teacherLoginMsg", "");
+        showScreen("screenTeacher");
+      } catch (error) {
+        showMessage("teacherLoginMsg", "강사 입장 오류:\n" + error.message, "error");
+      } finally {
+        $("teacherLoginBtn").disabled = false;
+      }
+    }
+
+    /**************************************************************
+     * 8. 학생 입장
+     * 중요: 익명 로그인 완료 -> currentUser.uid 확인 -> DB 저장 순서를 지킵니다.
+     **************************************************************/
+    async function studentJoin() {
+      if (isJoining) return;
+
+      const nickname = $("studentNickname").value.trim();
+
+      if (!nickname) {
+        showMessage("studentLoginMsg", "닉네임을 입력하세요.", "error");
+        return;
+      }
+
+      if (!initFirebase()) {
+        showMessage("studentLoginMsg", "Firebase 설정값을 먼저 입력해야 합니다.", "error");
+        return;
+      }
+
+      isJoining = true;
+      $("studentJoinBtn").disabled = true;
+      showMessage("studentLoginMsg", "익명 로그인 중입니다...", "notice");
+
+      try {
+        // 1) 익명 로그인 완료
+        const user = await ensureAnonymousAuth();
+
+        // 2) UID 확인
+        const uid = auth.currentUser?.uid || user.uid;
+        if (!uid) {
+          throw new Error("학생 UID를 확인하지 못했습니다. 익명 로그인 설정을 확인하세요.");
+        }
+
+        currentUid = uid;
+        currentNickname = nickname;
+        currentRole = "student";
+
+        await ensureRoomExists();
+
+        // 3) 로그인 성공 후 DB에 학생 정보 저장
+        const playerRef = roomRef.child(`players/${uid}`);
+        const existing = await playerRef.get();
+        const existingScore = existing.val()?.score || 0;
+
+        await playerRef.set({
+          uid,
+          nickname,
+          score: existingScore,
+          joinedAt: existing.exists() ? existing.val().joinedAt : firebase.database.ServerValue.TIMESTAMP,
+          lastSeenAt: firebase.database.ServerValue.TIMESTAMP,
+          online: true
+        });
+
+        await roomRef.child(`scores/${uid}`).update({
+          uid,
+          nickname,
+          score: Number(existingScore || 0)
+        });
+
+        // 4) 연결이 끊겼을 때 online만 false 처리합니다.
+        playerRef.child("online").onDisconnect().set(false);
+
+        subscribeRoom();
+        showMessage("studentLoginMsg", "");
+        showScreen("screenStudent");
+      } catch (error) {
+        showMessage(
+          "studentLoginMsg",
+          "학생 입장 오류:\n" + error.message + "\n\n확인할 것: Authentication 익명 로그인 사용 설정, Realtime Database URL, 보안 규칙",
+          "error"
+        );
+      } finally {
+        isJoining = false;
+        $("studentJoinBtn").disabled = false;
+      }
+    }
+
+    /**************************************************************
+     * 9. 강사 게임 제어
+     **************************************************************/
+    async function startGame() {
+      const players = getActivePlayers();
+      if (players.length === 0) {
+        alert("참가자가 1명 이상 입장해야 시작할 수 있습니다.");
+        return;
+      }
+
+      await clearTeacherTimer();
+      await roomRef.child("answers").remove();
+      await roomRef.child("questionStats").remove();
+
+      // 점수 초기화
+      const scoreUpdates = {};
+      players.forEach((player) => {
+        scoreUpdates[`scores/${player.uid}`] = {
+          uid: player.uid,
+          nickname: player.nickname,
+          score: 0
+        };
+        scoreUpdates[`players/${player.uid}/score`] = 0;
+      });
+      await roomRef.update(scoreUpdates);
+
+      await openQuestion(0);
+    }
+
+    async function openQuestion(index) {
+      const question = getQuestion(index);
+
+      if (!question) {
+        await finishGame();
+        return;
+      }
+
+      const players = getActivePlayers();
+      const participantCount = players.length;
+      const now = Date.now();
+      const endAt = now + QUESTION_TIME * 1000;
+
+      await clearTeacherTimer();
+
+      const publicQuestion = {
+        full: question.full,
+        front: question.front,
+        back: question.back,
+        hint: question.hint
+      };
+
+      await roomRef.update({
+        gameStatus: "playing",
+        currentQuestionIndex: index,
+        currentQuestion: publicQuestion,
+        questionTime: QUESTION_TIME,
+        participantCount,
+        questionStartedAt: now,
+        questionEndAt: endAt,
+        updatedAt: firebase.database.ServerValue.TIMESTAMP,
+        [`answers/${index}`]: null,
+        [`questionStats/${index}`]: {
+          correctCount: 0,
+          participantCount
+        },
+        timer: {
+          remaining: QUESTION_TIME,
+          endAt
+        }
+      });
+
+      startTeacherTimer(endAt, index);
+    }
+
+    function startTeacherTimer(endAt, questionIndex) {
+      clearTeacherTimer();
+
+      teacherTimerId = setInterval(async () => {
+        const remaining = Math.max(0, Math.ceil((endAt - Date.now()) / 1000));
+        await roomRef.child("timer").update({ remaining, endAt });
+
+        if (remaining <= 0) {
+          clearTeacherTimer();
+          const snap = await roomRef.child("gameStatus").get();
+          if (snap.val() === "playing") {
+            await roomRef.update({
+              gameStatus: "locked",
+              updatedAt: firebase.database.ServerValue.TIMESTAMP
+            });
+          }
+        }
+      }, 500);
+    }
+
+    async function clearTeacherTimer() {
+      if (teacherTimerId) {
+        clearInterval(teacherTimerId);
+        teacherTimerId = null;
+      }
+    }
+
+    async function nextQuestion() {
+      const currentIndex = Number(latestRoom?.currentQuestionIndex ?? -1);
+      if (currentIndex < 0) {
+        await openQuestion(0);
+        return;
+      }
+      await openQuestion(currentIndex + 1);
+    }
+
+    async function finishGame() {
+      await clearTeacherTimer();
+      await roomRef.update({
+        gameStatus: "ended",
+        timer: {
+          remaining: 0,
+          endAt: 0
+        },
+        updatedAt: firebase.database.ServerValue.TIMESTAMP
+      });
+    }
+
+    async function resetGame() {
+      const ok = confirm("정말 초기화할까요? 참가자, 점수, 답변, 진행 상태가 모두 초기화됩니다.");
+      if (!ok) return;
+
+      await clearTeacherTimer();
+      await roomRef.set({
+        gameStatus: "waiting",
+        currentQuestionIndex: -1,
+        currentQuestion: null,
+        questionTime: QUESTION_TIME,
+        timer: {
+          remaining: QUESTION_TIME,
+          endAt: 0
+        },
+        players: null,
+        scores: null,
+        answers: null,
+        questionStats: null,
+        resetAt: firebase.database.ServerValue.TIMESTAMP,
+        updatedAt: firebase.database.ServerValue.TIMESTAMP
+      });
+    }
+
+    /**************************************************************
+     * 10. 학생 답 제출
+     **************************************************************/
+    async function submitAnswer() {
+      if (isSubmitting) return;
+
+      if (!currentUid) {
+        showStudentResult("입장 정보가 없습니다. 다시 입장해 주세요.", "wrong");
+        return;
+      }
+
+      const room = latestRoom || {};
+      const status = room.gameStatus;
+      const qIndex = Number(room.currentQuestionIndex ?? -1);
+      const question = room.currentQuestion;
+
+      if (status !== "playing" || qIndex < 0 || !question) {
+        showStudentResult("지금은 답을 제출할 수 없습니다.", "wrong");
+        return;
+      }
+
+      const remaining = Number(room.timer?.remaining ?? 0);
+      const endAt = Number(room.timer?.endAt ?? 0);
+      if (remaining <= 0 || (endAt && Date.now() > endAt + 300)) {
+        showStudentResult("시간이 끝났습니다.", "wrong");
+        return;
+      }
+
+      const rawAnswer = $("studentAnswerInput").value;
+      const normalized = normalizeAnswer(rawAnswer);
+
+      if (!normalized) {
+        showStudentResult("답을 입력하세요.", "wrong");
+        return;
+      }
+
+      isSubmitting = true;
+      $("submitAnswerBtn").disabled = true;
+
+      try {
+        const answerRef = roomRef.child(`answers/${qIndex}/${currentUid}`);
+
+        // 중복 제출 방지: 먼저 내 답변 위치를 transaction으로 잠급니다.
+        const lockResult = await answerRef.transaction((current) => {
+          if (current !== null) return current;
+          return {
+            uid: currentUid,
+            nickname: currentNickname,
+            answer: rawAnswer,
+            locked: true,
+            submittedAt: firebase.database.ServerValue.TIMESTAMP
+          };
+        }, undefined, false);
+
+        if (!lockResult.committed) {
+          showStudentResult("이미 제출했습니다.", "wrong");
+          return;
+        }
+
+        const correctBack = normalizeAnswer(question.back);
+        const correctFull = normalizeAnswer(question.full);
+        const isCorrect = normalized === correctBack || normalized === correctFull;
+
+        let rank = null;
+        let points = 0;
+
+        if (isCorrect) {
+          const statRef = roomRef.child(`questionStats/${qIndex}/correctCount`);
+          const rankResult = await statRef.transaction((count) => Number(count || 0) + 1);
+
+          rank = Number(rankResult.snapshot.val() || 1);
+          const participantCount = Number(room.participantCount || getActivePlayers(room).length || 1);
+          points = Math.max(participantCount - rank + 1, 1);
+
+          const scoreRef = roomRef.child(`scores/${currentUid}/score`);
+          await scoreRef.transaction((score) => Number(score || 0) + points);
+          await roomRef.child(`players/${currentUid}/score`).transaction((score) => Number(score || 0) + points);
+        }
+
+        await answerRef.update({
+          uid: currentUid,
+          nickname: currentNickname,
+          answer: rawAnswer,
+          normalizedAnswer: normalized,
+          isCorrect,
+          rank,
+          points,
+          locked: null,
+          resolvedAt: firebase.database.ServerValue.TIMESTAMP
+        });
+
+        if (isCorrect) {
+          showStudentResult(`정답! ${rank}등, ${points}점 획득`, "correct");
+        } else {
+          showStudentResult("오답입니다. 0점", "wrong");
+        }
+      } catch (error) {
+        showStudentResult("제출 오류: " + error.message, "wrong");
+        $("submitAnswerBtn").disabled = false;
+      } finally {
+        isSubmitting = false;
+      }
+    }
+
+    function showStudentResult(message, resultType) {
+      const className = resultType === "correct" ? "correct" : "wrong";
+      $("studentResult").innerHTML = `<div class="result-big ${className}">${escapeHtml(message)}</div>`;
+    }
+
+    /**************************************************************
+     * 11. 화면 렌더링
+     **************************************************************/
+    function renderTeacher(room) {
+      const players = getPlayers(room);
+      const activePlayers = getActivePlayers(room);
+      const qIndex = Number(room.currentQuestionIndex ?? -1);
+      const question = getCurrentQuestion(room);
+      const status = room.gameStatus || "waiting";
+      const remaining = Number(room.timer?.remaining ?? QUESTION_TIME);
+
+      $("teacherPlayerCount").textContent = String(activePlayers.length);
+      $("teacherQuestionIndex").textContent = qIndex >= 0 ? `${qIndex + 1}/${QUESTIONS.length}` : `0/${QUESTIONS.length}`;
+      $("teacherTimer").textContent = String(remaining);
+      $("teacherStatus").textContent = statusLabel(status);
+
+      if (question && (status === "playing" || status === "locked")) {
+        $("teacherQuestion").textContent = `${question.front}-____`;
+        $("teacherHint").textContent = `힌트: ${question.hint} / 정답: ${question.back}`;
+      } else if (status === "ended") {
+        $("teacherQuestion").textContent = "게임 종료";
+        $("teacherHint").textContent = "최종 순위를 확인하세요.";
+      } else {
+        $("teacherQuestion").textContent = "대기 중";
+        $("teacherHint").textContent = "학생들이 입장하면 게임을 시작하세요.";
+      }
+
+      $("startGameBtn").disabled = status === "playing";
+      $("nextQuestionBtn").disabled = status === "playing" || activePlayers.length === 0;
+      $("endGameBtn").disabled = status === "ended" || status === "waiting";
+
+      renderTeacherPlayers(players);
+      renderTeacherAnswers(room);
+      renderTeacherScores(room);
+    }
+
+    function renderTeacherPlayers(players) {
+      const box = $("teacherPlayers");
+      if (!players.length) {
+        box.innerHTML = `<div class="small">아직 입장한 학생이 없습니다.</div>`;
+        return;
+      }
+
+      box.innerHTML = players.map((player, idx) => `
+        <div class="list-item">
+          <span class="badge gray">${idx + 1}</span>
+          <span>${escapeHtml(player.nickname || "이름 없음")}</span>
+          <span class="small">${player.online ? "온라인" : "오프라인"}</span>
+        </div>
+      `).join("");
+    }
+
+    function renderTeacherAnswers(room) {
+      const qIndex = Number(room.currentQuestionIndex ?? -1);
+      const answerMap = room.answers?.[qIndex] || {};
+      const answers = Object.values(answerMap)
+        .filter((answer) => answer && answer.locked !== true)
+        .sort((a, b) => {
+          const ar = a.isCorrect ? Number(a.rank || 9999) : 99999;
+          const br = b.isCorrect ? Number(b.rank || 9999) : 99999;
+          return ar - br;
+        });
+
+      const box = $("teacherAnswers");
+
+      if (qIndex < 0) {
+        box.innerHTML = `<div class="small">문제가 시작되면 제출 현황이 표시됩니다.</div>`;
+        return;
+      }
+
+      if (!answers.length) {
+        box.innerHTML = `<div class="small">아직 제출한 학생이 없습니다.</div>`;
+        return;
+      }
+
+      box.innerHTML = answers.map((answer) => {
+        const badge = answer.isCorrect ? (answer.rank || "✓") : "×";
+        const badgeClass = answer.isCorrect ? "green" : "red";
+        const pointText = answer.isCorrect ? `${answer.points || 0}점` : "0점";
+        const rankText = answer.isCorrect ? `${answer.rank}등` : "오답";
+        return `
+          <div class="list-item">
+            <span class="badge ${badgeClass}">${badge}</span>
+            <span>
+              ${escapeHtml(answer.nickname || "이름 없음")}
+              <span class="small"> / ${escapeHtml(answer.answer || "")}</span>
+            </span>
+            <span>${rankText} · ${pointText}</span>
+          </div>
+        `;
+      }).join("");
+    }
+
+    function renderTeacherScores(room) {
+      const scores = getScores(room);
+      const box = $("teacherScores");
+
+      if (!scores.length) {
+        box.innerHTML = `<div class="small">점수 데이터가 없습니다.</div>`;
+        return;
+      }
+
+      box.innerHTML = scores.map((item, idx) => `
+        <div class="list-item">
+          <span class="badge">${idx + 1}</span>
+          <span>${escapeHtml(item.nickname)}</span>
+          <span>${item.score}점</span>
+        </div>
+      `).join("");
+    }
+
+    function renderStudent(room) {
+      const status = room.gameStatus || "waiting";
+      const qIndex = Number(room.currentQuestionIndex ?? -1);
+      const question = room.currentQuestion;
+      const remaining = Number(room.timer?.remaining ?? 0);
+      const myScoreData = room.scores?.[currentUid];
+      const myScore = Number(myScoreData?.score || room.players?.[currentUid]?.score || 0);
+
+      $("myNickname").textContent = currentNickname || room.players?.[currentUid]?.nickname || "-";
+      $("myScore").textContent = `${myScore}점`;
+      $("studentTimer").textContent = status === "playing" || status === "locked" ? String(remaining) : "--";
+
+      if (!room.players?.[currentUid] && status !== "waiting") {
+        $("studentQuestion").textContent = "입장 정보 없음";
+        $("studentHint").textContent = "초기화 후에는 다시 입장해야 합니다.";
+        $("studentAnswerArea").style.display = "none";
+        return;
+      }
+
+      if (status === "waiting") {
+        $("studentQuestion").textContent = "대기 중";
+        $("studentHint").textContent = "강사가 게임을 시작할 때까지 기다려 주세요.";
+        $("studentAnswerArea").style.display = "none";
+        $("studentFinalCard").style.display = "none";
+        $("studentResult").innerHTML = "";
+        return;
+      }
+
+      if (status === "ended") {
+        $("studentQuestion").textContent = "게임 종료";
+        $("studentHint").textContent = "최종 결과를 확인하세요.";
+        $("studentAnswerArea").style.display = "none";
+        renderStudentFinal(room);
+        return;
+      }
+
+      if (question && qIndex >= 0) {
+        $("studentQuestion").textContent = `${question.front}-____`;
+        $("studentHint").textContent = `힌트: ${question.hint}`;
+      }
+
+      const myAnswer = room.answers?.[qIndex]?.[currentUid];
+      const canSubmit = status === "playing" && remaining > 0 && !myAnswer;
+
+      $("studentAnswerArea").style.display = "grid";
+      $("studentAnswerInput").disabled = !canSubmit;
+      $("submitAnswerBtn").disabled = !canSubmit;
+
+      if (!myAnswer && status === "playing") {
+        $("studentResult").innerHTML = "";
+      }
+
+      if (myAnswer && myAnswer.locked !== true) {
+        if (myAnswer.isCorrect) {
+          showStudentResult(`제출 완료 · 정답! ${myAnswer.rank}등, ${myAnswer.points}점`, "correct");
+        } else {
+          showStudentResult("제출 완료 · 오답 0점", "wrong");
+        }
+      }
+
+      if (status === "locked" && !myAnswer) {
+        showStudentResult("시간 종료 · 미제출 0점", "wrong");
+      }
+    }
+
+    function renderStudentFinal(room) {
+      const ranking = getScores(room);
+      const myIndex = ranking.findIndex((item) => item.uid === currentUid);
+      const myRank = myIndex >= 0 ? myIndex + 1 : "-";
+      const myScore = myIndex >= 0 ? ranking[myIndex].score : 0;
+
+      $("studentFinalCard").style.display = "block";
+      $("studentFinalMessage").className = "result-big correct";
+      $("studentFinalMessage").textContent = `내 순위: ${myRank}등 / ${myScore}점`;
+
+      $("studentFinalRanking").innerHTML = ranking.slice(0, 10).map((item, idx) => {
+        const medal = idx === 0 ? "🏆" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : `${idx + 1}`;
+        return `
+          <div class="final-item">
+            <span class="badge">${medal}</span>
+            <span>${escapeHtml(item.nickname)}</span>
+            <span>${item.score}점</span>
+          </div>
+        `;
+      }).join("");
+
+      if (myIndex >= 0 && myIndex < 3) {
+        launchConfetti();
+      }
+    }
+
+    /**************************************************************
+     * 12. 축하 효과
+     **************************************************************/
+    function launchConfetti() {
+      const box = $("confetti");
+      if (box.dataset.done === "yes") return;
+
+      box.dataset.done = "yes";
+      box.style.display = "block";
+      box.innerHTML = "";
+
+      const colors = ["#f59e0b", "#22c55e", "#3b82f6", "#ef4444", "#a855f7", "#14b8a6"];
+
+      for (let i = 0; i < 90; i++) {
+        const piece = document.createElement("span");
+        piece.style.left = Math.random() * 100 + "vw";
+        piece.style.background = colors[i % colors.length];
+        piece.style.animationDelay = Math.random() * 0.8 + "s";
+        piece.style.transform = `rotate(${Math.random() * 360}deg)`;
+        box.appendChild(piece);
+      }
+
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.type = "triangle";
+          osc.frequency.value = freq;
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+          gain.gain.setValueAtTime(0.0001, audioCtx.currentTime + i * 0.12);
+          gain.gain.exponentialRampToValueAtTime(0.18, audioCtx.currentTime + i * 0.12 + 0.03);
+          gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + i * 0.12 + 0.25);
+          osc.start(audioCtx.currentTime + i * 0.12);
+          osc.stop(audioCtx.currentTime + i * 0.12 + 0.28);
+        });
+      } catch (error) {
+        // 브라우저 자동 재생 정책 때문에 소리가 막힐 수 있습니다.
+      }
+
+      setTimeout(() => {
+        box.style.display = "none";
+      }, 3500);
+    }
+
+    /**************************************************************
+     * 13. 이벤트 연결
+     **************************************************************/
+    $("goTeacherBtn").addEventListener("click", () => showScreen("screenTeacherLogin"));
+    $("goStudentBtn").addEventListener("click", () => showScreen("screenStudentLogin"));
+
+    document.querySelectorAll("[data-back]").forEach((btn) => {
+      btn.addEventListener("click", () => showScreen("screenHome"));
+    });
+
+    $("teacherLoginBtn").addEventListener("click", teacherLogin);
+    $("teacherPassword").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") teacherLogin();
+    });
+
+    $("studentJoinBtn").addEventListener("click", studentJoin);
+    $("studentNickname").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") studentJoin();
+    });
+
+    $("startGameBtn").addEventListener("click", startGame);
+    $("nextQuestionBtn").addEventListener("click", nextQuestion);
+    $("endGameBtn").addEventListener("click", finishGame);
+    $("resetGameBtn").addEventListener("click", resetGame);
+
+    $("submitAnswerBtn").addEventListener("click", submitAnswer);
+    $("studentAnswerInput").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") submitAnswer();
+    });
+
+    // 처음 로드 시 Firebase 설정값 누락 안내
+    if (!hasFirebaseConfig()) {
+      $("configWarning").style.display = "block";
+      $("configWarning").textContent =
+        "코드 상단의 firebaseConfig를 입력해야 실제 접속이 가능합니다. 먼저 Firebase에서 익명 로그인과 Realtime Database를 준비하세요.";
     }
   </script>
 </body>
