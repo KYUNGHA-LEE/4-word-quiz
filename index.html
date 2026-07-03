@@ -33,10 +33,15 @@
 
     html {
       min-height: 100%;
+      width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
     }
 
     body {
       margin: 0;
+      width: 100%;
+      max-width: 100%;
       min-height: 100vh;
       min-height: 100dvh;
       overflow-x: hidden;
@@ -54,11 +59,13 @@
     }
 
     .app {
-      width: min(1440px, 100%);
+      width: 100%;
+      max-width: 1440px;
       min-height: 100vh;
       min-height: 100dvh;
       margin: 0 auto;
-      padding: clamp(10px, 2vw, 28px);
+      padding: clamp(16px, 2vw, 28px) clamp(10px, 2vw, 28px);
+      overflow-x: hidden;
     }
 
     .hero {
@@ -68,7 +75,8 @@
 
     .hero h1 {
       margin: 0 0 6px;
-      font-size: clamp(26px, 4.5vw, 58px);
+      font-size: clamp(24px, 3.6vw, 48px);
+      line-height: 1.08;
       letter-spacing: -0.04em;
     }
 
@@ -80,6 +88,7 @@
     }
 
     .card {
+      min-width: 0;
       background: var(--card);
       border: 1px solid rgba(255,255,255,0.82);
       border-radius: var(--radius);
@@ -222,29 +231,37 @@
 
     .grid {
       display: grid;
-      grid-template-columns: minmax(420px, 1.1fr) minmax(320px, 0.9fr);
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
       gap: clamp(10px, 1.6vw, 18px);
       align-items: start;
+      width: 100%;
+      max-width: 100%;
     }
 
     .teacher-top {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: clamp(8px, 1.4vw, 12px);
       margin-bottom: clamp(10px, 1.8vw, 18px);
+      width: 100%;
+      max-width: 100%;
     }
 
     .stat {
+      min-width: 0;
       background: #fff;
       border-radius: 20px;
-      padding: clamp(12px, 1.8vw, 18px);
+      padding: clamp(10px, 1.4vw, 16px);
       border: 1px solid var(--line);
+      overflow: hidden;
     }
 
     .stat .num {
-      font-size: 34px;
+      font-size: clamp(24px, 3vw, 34px);
       font-weight: 1000;
-      line-height: 1;
+      line-height: 1.08;
+      word-break: keep-all;
+      overflow-wrap: anywhere;
     }
 
     .stat .label {
@@ -511,9 +528,12 @@
 
     @media (max-width: 860px) {
       .grid,
-      .mode-grid,
-      .teacher-top {
+      .mode-grid {
         grid-template-columns: 1fr;
+      }
+
+      .teacher-top {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
       .app {
@@ -581,7 +601,11 @@
 
     @media (max-width: 480px) {
       .hero h1 {
-        font-size: 25px;
+        font-size: 24px;
+      }
+
+      .teacher-top {
+        grid-template-columns: 1fr;
       }
 
       .hero p {
@@ -608,6 +632,23 @@
       .my-name,
       .my-score {
         font-size: 20px;
+      }
+    }
+
+
+    @media (max-width: 1120px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .teacher-top {
+        grid-template-columns: 1fr;
+      }
+
+      .stat .num {
+        font-size: 28px;
       }
     }
 
