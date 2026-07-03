@@ -540,7 +540,7 @@
           <button class="mode-btn" id="goTeacherBtn">
             <span class="mode-icon">👩‍🏫</span>
             <span class="mode-title">강사로 입장</span>
-            <span class="mode-desc">admin 입력 후 게임을 운영합니다.</span>
+            <span class="mode-desc">비밀번호 확인 후 게임을 운영합니다.</span>
           </button>
           <button class="mode-btn" id="goStudentBtn">
             <span class="mode-icon">🙋</span>
@@ -556,10 +556,10 @@
     <section id="screenTeacherLogin" class="screen">
       <div class="card center-card">
         <h2>강사 입장</h2>
-        <p class="small">비밀번호는 <b>admin</b>입니다.</p>
+        <p class="small">강사 비밀번호는 Vercel 환경변수에서 안전하게 확인합니다.</p>
         <div class="form">
           <label for="teacherPassword">강사 비밀번호</label>
-          <input id="teacherPassword" type="password" placeholder="admin" autocomplete="off" />
+          <input id="teacherPassword" type="password" placeholder="강사 비밀번호 입력" autocomplete="off" />
           <button id="teacherLoginBtn" class="btn">강사 화면 열기</button>
           <button class="btn light" data-back>처음으로</button>
         </div>
@@ -699,7 +699,6 @@
      * 2. 게임 기본 설정
      **************************************************************/
     const ROOM_ID = "defaultRoom";
-    const TEACHER_PASSWORD = "admin";
     const QUESTION_TIME = 20;
 
     // AI 생성 느낌의 4글자 표현 예시.
@@ -914,24 +913,53 @@
 
     /**************************************************************
      * 7. 강사 입장
+     * 중요: 강사 비밀번호는 index.html에 저장하지 않습니다.
+     * Vercel 서버리스 API(/api/check-admin)가 환경변수 ADMIN_PASSWORD와 비교합니다.
      **************************************************************/
+    async function verifyTeacherPassword(password) {
+      const response = await fetch("/api/check-admin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ password })
+      });
+
+      let data = {};
+      try {
+        data = await response.json();
+      } catch (_) {
+        data = {};
+      }
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.message || "비밀번호가 맞지 않거나 확인 서버에 연결할 수 없습니다.");
+      }
+
+      return true;
+    }
+
     async function teacherLogin() {
       const password = $("teacherPassword").value.trim();
 
-      if (password !== TEACHER_PASSWORD) {
-        showMessage("teacherLoginMsg", "비밀번호가 맞지 않습니다.", "error");
-        return;
-      }
-
-      if (!initFirebase()) {
-        showMessage("teacherLoginMsg", "Firebase 설정값을 먼저 입력해야 합니다.", "error");
+      if (!password) {
+        showMessage("teacherLoginMsg", "강사 비밀번호를 입력하세요.", "error");
         return;
       }
 
       $("teacherLoginBtn").disabled = true;
-      showMessage("teacherLoginMsg", "강사 익명 로그인 중입니다...", "notice");
+      showMessage("teacherLoginMsg", "강사 비밀번호 확인 중입니다...", "notice");
 
       try {
+        await verifyTeacherPassword(password);
+
+        if (!initFirebase()) {
+          showMessage("teacherLoginMsg", "Firebase 설정값을 먼저 입력해야 합니다.", "error");
+          return;
+        }
+
+        showMessage("teacherLoginMsg", "강사 익명 로그인 중입니다...", "notice");
+
         const user = await ensureAnonymousAuth();
         currentUid = user.uid;
         currentRole = "teacher";
