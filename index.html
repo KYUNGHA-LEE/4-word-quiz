@@ -652,6 +652,141 @@
       }
     }
 
+
+    /* v4 강제 자동맞춤 보정: 강사/학생 공통 */
+    .app {
+      max-width: none !important;
+      width: 100% !important;
+      min-height: 100svh !important;
+      padding: clamp(8px, 1.4vw, 18px) !important;
+    }
+
+    .hero {
+      margin-bottom: clamp(8px, 1.2vw, 16px) !important;
+      padding-top: 0 !important;
+    }
+
+    .hero h1 {
+      font-size: clamp(22px, 3vw, 40px) !important;
+      line-height: 1.08 !important;
+      margin: 0 0 4px !important;
+      word-break: keep-all !important;
+    }
+
+    .hero p {
+      font-size: clamp(13px, 1.6vw, 18px) !important;
+      line-height: 1.35 !important;
+      word-break: keep-all !important;
+    }
+
+    #screenTeacher,
+    #screenStudent {
+      width: 100% !important;
+      max-width: 100% !important;
+      overflow-x: hidden !important;
+    }
+
+    .teacher-top {
+      display: grid !important;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)) !important;
+      gap: clamp(8px, 1vw, 12px) !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      margin: 0 0 clamp(8px, 1.2vw, 14px) !important;
+    }
+
+    .stat {
+      min-width: 0 !important;
+      width: 100% !important;
+      padding: clamp(8px, 1.1vw, 14px) !important;
+      border-radius: 18px !important;
+    }
+
+    .stat .num {
+      font-size: clamp(22px, 2.8vw, 34px) !important;
+      line-height: 1.05 !important;
+      white-space: nowrap !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+    }
+
+    .stat .label {
+      font-size: clamp(13px, 1.5vw, 17px) !important;
+    }
+
+    .grid {
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 0.8fr) !important;
+      gap: clamp(8px, 1.2vw, 14px) !important;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    .card {
+      min-width: 0 !important;
+      max-width: 100% !important;
+      padding: clamp(10px, 1.3vw, 18px) !important;
+    }
+
+    .question-box {
+      min-height: clamp(110px, 20vh, 180px) !important;
+      padding: clamp(12px, 1.8vw, 24px) !important;
+    }
+
+    .question-title {
+      font-size: clamp(34px, 6vw, 76px) !important;
+      line-height: 1.05 !important;
+      word-break: keep-all !important;
+    }
+
+    .student-main {
+      display: grid !important;
+      grid-template-columns: minmax(0, 1fr) !important;
+      gap: clamp(10px, 1.3vw, 18px) !important;
+      width: 100% !important;
+      max-width: 920px !important;
+      margin: 0 auto !important;
+    }
+
+    .timer-large {
+      font-size: clamp(52px, 12vw, 130px) !important;
+      line-height: 0.95 !important;
+    }
+
+    @media (max-width: 1180px) {
+      .grid {
+        grid-template-columns: 1fr !important;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .app {
+        padding: 8px !important;
+      }
+
+      .teacher-top {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      }
+
+      .btn-row,
+      .form {
+        gap: 8px !important;
+      }
+    }
+
+    @media (max-width: 430px) {
+      .teacher-top {
+        grid-template-columns: 1fr !important;
+      }
+
+      .hero h1 {
+        font-size: 22px !important;
+      }
+
+      .hero p {
+        font-size: 13px !important;
+      }
+    }
+
   </style>
 </head>
 
