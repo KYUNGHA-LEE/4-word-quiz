@@ -6,41 +6,29 @@
 
 ```text
 index.html
-api/check-admin.js
 database.rules.json
 README.md
 ```
 
-## 보안 구조
+## 강사 입장 방법
 
-강사 비밀번호는 `index.html`에 직접 들어가지 않습니다.
-
-강사 로그인 흐름은 다음과 같습니다.
-
-1. 강사가 비밀번호 입력
-2. `index.html`이 `/api/check-admin`으로 비밀번호 확인 요청
-3. Vercel 서버리스 함수가 환경변수 `ADMIN_PASSWORD`와 비교
-4. 비밀번호가 맞으면 Firebase 익명 로그인 후 강사 화면 입장
-
-## Vercel 환경변수
-
-Vercel 배포 전에 Environment Variables에 아래 값을 추가하세요.
+강사 입장에는 비밀번호가 없습니다. 배포된 주소 뒤에 `?mode=admin` 을 붙여 접속하면 바로 강사 화면이 열립니다.
 
 ```text
-Name: ADMIN_PASSWORD
-Value: 원하는 강사 비밀번호
-Environment: Production, Preview, Development 전체 선택 권장
+학생: https://내주소.vercel.app
+강사: https://내주소.vercel.app/?mode=admin
 ```
 
-비밀번호는 GitHub README나 코드에 적어두지 않는 것을 권장합니다.
+강사 주소는 학생에게 알려주지 마세요. 주소를 아는 사람은 누구나 강사 화면을 열 수 있습니다(수업용 신뢰 기반).
 
-## Firebase에서 꼭 켤 것
+## 배포 전에 할 일 (Firebase)
 
-Authentication > Sign-in method > Anonymous를 사용 설정해야 합니다.
+1. Firebase 프로젝트 생성 후 웹 앱 추가
+2. 발급된 `firebaseConfig` 값을 `index.html` 상단의 `firebaseConfig` 자리에 붙여넣기
+3. Authentication > Sign-in method > **Anonymous(익명)** 사용 설정
+4. Realtime Database 생성 후 `database.rules.json`의 내용을 Rules 화면에 붙여넣고 게시
 
 ## Firebase Realtime Database 규칙 예시
-
-`database.rules.json`의 내용을 Firebase Realtime Database Rules 화면에 붙여넣고 게시하세요.
 
 ```json
 {
@@ -55,20 +43,19 @@ Authentication > Sign-in method > Anonymous를 사용 설정해야 합니다.
 }
 ```
 
-## 배포 방식
+## 배포 방식 (Vercel)
 
-GitHub에는 최소 아래 파일/폴더를 올리세요.
+1. GitHub 저장소를 만들고 `index.html`, `database.rules.json`, `README.md`를 업로드
+2. Vercel에서 GitHub 저장소를 연결하고 Deploy
 
-```text
-index.html
-api/check-admin.js
-README.md
-```
+환경변수 설정은 필요 없습니다.
 
-Vercel에서 GitHub 저장소를 연결한 뒤, 환경변수 `ADMIN_PASSWORD`를 설정하고 Deploy를 누르면 됩니다.
+## 문제 바꾸기
+
+`index.html` 안의 단어 목록(`{ full: "스파게티", front: "스파", back: "게티", hint: "음식" }` 형식)을 수정하면 자기만의 문제로 바꿀 수 있습니다.
+
 ## 화면 자동 맞춤
 
-이번 버전은 강사 화면과 학생 화면 모두 반응형으로 조정됩니다.
+강사 화면과 학생 화면 모두 반응형으로 조정됩니다.
 노트북, 교실 TV, 태블릿, 스마트폰 화면 폭에 따라 카드와 버튼, 문제 영역, 점수판이 자동으로 재배치됩니다.
 세로 높이가 낮은 노트북 화면에서는 제목과 문제 영역 크기를 줄여 한 화면에 더 잘 들어오도록 조정했습니다.
-
